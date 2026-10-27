@@ -1,0 +1,11 @@
+{
+  "name": "rgb-neighbor-edge-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local RGB neighborhood contrast demo and reviewed edge-label export",
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "serve": "node server.cjs"
+  },
+  "engines": { "node": ">=20" }
+}
