@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>정답으로 배우는 윤곽 · MLP 학습 예제</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="train.css">
+  <script src="core.js" defer></script>
+  <script src="mlp-core.js" defer></script>
+  <script src="train.js" defer></script>
+</head>
+<body>
+<main>
+  <nav class="lab-nav" aria-label="예제 이동"><a href="index.html">A · 윤곽 자료 만들기</a><span aria-current="page">B · MLP 학습하기</span></nav>
+  <header><span class="eyebrow">MLP EDGE LEARNING LAB</span><h1>정답을 보여주면,<br>윤곽을 배울 수 있을까?</h1><p>RGB와 주변 평균, 차이 점수를 입력하고 사람이 표시한 정답으로 가중치를 학습합니다. 연습 자료로 시작한 뒤, A에서 만든 내 자료로 실험해 보세요.</p></header>
+  <section class="formula" aria-label="학습 구조"><strong>입력 특징 7개 → 가중합 → GELU → 가중합 → 윤곽 예측값</strong><span>작은 MLP 7 → 12 → 1 · 연쇄법칙으로 미분하고 실제 가중치를 조정 · 모든 처리는 이 브라우저 안에서 실행</span></section>
+  <div class="quick-start"><strong>처음이라면</strong><span>아래 <b>학습 시작</b>을 누르세요. 도형 3장으로 학습하고, 학습에 쓰지 않은 1장으로 평가합니다.</span></div>
+
+  <section class="training-grid">
+    <article class="card"><div class="section-title"><h2>01 학습 자료와 정답</h2><span id="dataset-count"></span></div>
+      <div class="button-row"><label class="button" for="dataset-upload">A의 학습 JSON 추가</label><input id="dataset-upload" type="file" accept="application/json,.json" multiple hidden><button id="load-demo-data">도형 연습 자료</button><button id="clear-data">자료 비우기</button></div>
+      <p class="small">내 자료만 사용하려면 먼저 자료를 비우세요. A에서 윤곽과 비윤곽을 직접 표시한 뒤 <b>학습 JSON 저장</b>으로 받은 파일을 선택합니다. 다른 원본 이미지를 평가용으로 지정하면 학습에 사용하지 않습니다.</p>
+      <div class="table-scroll"><table class="dataset-table"><thead><tr><th>이미지</th><th>정답 수<br>윤곽 / 비윤곽</th><th>용도</th><th><span class="sr-only">제거</span></th></tr></thead><tbody id="datasets"></tbody></table></div>
+      <p class="small" id="data-source"></p><p class="status" id="data-status" role="status"></p>
+    </article>
+    <article class="card"><h2>02 정답과 비교하며 학습</h2>
+      <form id="train-form"><div class="parameter-row"><label>학습 반복 횟수<input id="epochs" type="number" min="1" max="500" step="1" value="120" required></label><label>학습률<select id="learning-rate"><option value="0.003">0.003 · 작게</option><option value="0.01" selected>0.01 · 기본</option><option value="0.03">0.03 · 크게</option></select></label></div>
+        <div class="button-row"><button id="start-training" class="primary" type="submit">학습 시작</button><button id="stop-training" type="button" disabled>학습 중단</button></div>
+      </form>
+      <p class="status" id="training-status" role="status">연습 자료가 준비되었습니다. 학습 시작을 눌러 보세요.</p>
+      <progress id="training-progress" value="0" max="120" aria-label="학습 진행률"></progress>
+      <div class="stats training-stats"><div>학습 전 손실<strong id="initial-loss">—</strong></div><div>현재 학습 손실<strong id="current-loss">—</strong></div><div>완료한 반복<strong id="completed-epochs">0</strong></div></div>
+      <canvas id="loss-chart" width="640" height="160" aria-label="학습 반복에 따른 손실 변화 그래프"></canvas>
+      <p class="small" id="weight-change">학습하면 실제로 바뀐 가중치를 여기에 표시합니다.</p>
+      <p class="small">두 정답 종류를 같은 수로 뽑아 최대 4,000개 샘플로 학습합니다. 손실은 예측과 정답의 차이이며, 작아지는지 살펴보세요. 평가 자료의 정답은 가중치 조정에 사용하지 않습니다.</p>
+    </article>
+  </section>
+
+  <section class="card evaluation-card"><div class="section-title"><h2>03 학습에 쓰지 않은 이미지에서 평가</h2><span id="evaluation-count"></span></div><div id="heldout-metrics" class="stats"><div>정밀도<strong>—</strong></div><div>재현율<strong>—</strong></div><div>F1<strong>—</strong></div></div><p id="evaluation-status" class="small" role="status">학습이 끝나면 평가용 정답 전체와 비교합니다.</p></section>
+
+  <section class="card preview-controls"><div class="section-title"><h2>04 다른 이미지에 적용하기</h2><span id="prediction-status" role="status"></span></div><div class="button-row"><label for="preview-select">자료 미리보기</label><select id="preview-select" aria-label="자료 미리보기"></select><label class="button" for="prediction-upload">새 이미지로 예측</label><input id="prediction-upload" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" hidden></div><div class="cutoff-control"><label for="prediction-cutoff">윤곽으로 선택할 기준 <output id="cutoff-readout">0.50</output></label><input id="prediction-cutoff" type="range" min="0.05" max="0.95" step="0.01" value="0.5"></div><p class="small">예측값이 기준 이상이면 윤곽으로 표시합니다. 평가 결과를 보며 기준을 조정한 자료는 최종 시험 자료로 볼 수 없습니다. 새 이미지의 긴 변은 최대 512픽셀로 맞춥니다.</p></section>
+  <section class="workspace" aria-label="MLP 윤곽 예측 결과"><article class="panel"><div class="panel-head"><h2>원본 이미지</h2><span id="preview-name"></span></div><canvas id="mlp-original" width="96" height="64" aria-label="MLP 예측 원본"></canvas></article><article class="panel"><div class="panel-head"><h2>비교할 정답</h2><span>흰색 윤곽 · 회색 미지정</span></div><canvas id="mlp-labels" width="96" height="64" aria-label="MLP 예측에 대한 정답"></canvas></article><article class="panel"><div class="panel-head"><h2>학습한 MLP의 예측</h2><span>흰색 윤곽 · 검정 비윤곽</span></div><canvas id="mlp-prediction" width="96" height="64" aria-label="학습한 MLP의 윤곽 예측"></canvas></article></section>
+  <p class="small" id="preview-metrics" role="status"></p>
+  <section class="exports"><h2>학습 결과 가져가기</h2><button id="save-model" disabled>학습한 모델 JSON 저장</button><label class="button" for="model-upload">저장한 모델 불러오기</label><input id="model-upload" type="file" accept="application/json,.json" hidden><button id="save-prediction" disabled>예측 PNG 저장</button><p class="small">모델에는 가중치와 입력 변환 정보가 저장됩니다. 이미지·정답·모델은 서버로 전송하지 않습니다. 새로고침하기 전에 저장해 주세요.</p><span id="model-status" role="status"></span></section>
+  <details><summary>B의 합성함수·미분과 어떻게 연결될까요?</summary><p>입력 x는 RGB 3개, 주변 RGB 평균 3개, 차이 점수 1개입니다. RGB와 평균은 255로, 점수는 195075로 나누고, 학습 샘플의 평균과 표준편차로 크기를 맞춥니다. 같은 변환을 평가와 예측에도 적용하며, 지나치게 큰 표준화 값은 ±8로 제한합니다.</p><pre>z = W₁x + b₁
+h = GELU(z)
+t = W₂h + b₂
+p = sigmoid(t)
+손실 L = −y log(p) − (1−y) log(1−p)
+
+∂L/∂t = p − y
+∂L/∂W₂ = (p − y)hᵀ
+∂L/∂z = W₂ᵀ(p − y) ⊙ GELU′(z)
+∂L/∂W₁ = (∂L/∂z)xᵀ</pre><p>이 미분값으로 Adam이 가중치와 편향을 조정합니다. GELU는 tanh 근사식을 사용합니다. 이 페이지는 작은 픽셀 분류 MLP를 학습하며, ViT 전체를 학습하는 예제는 아닙니다.</p><p>도형 연습 자료의 정답은 알려진 도형 영역의 경계에서 만듭니다. 점수 임계값을 정답으로 사용하지 않습니다. 학습용 3장과 평가용 1장은 다른 이미지이지만 비슷한 도형 자료이므로, 실제 사진에서도 같은 성능을 낸다는 뜻은 아닙니다. 7개 입력 특징에 없는 형태·의미 정보는 구분하기 어렵습니다.</p></details>
+  <footer><a href="index.html">A · 내 이미지의 정답 자료 만들기</a> · <a href="https://github.com/jeongsh214/rgb-neighbor-edge-demo">소스와 사용 설명</a></footer>
+</main>
+</body>
+</html>
