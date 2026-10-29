@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light">
+  <title>C · PCA로 이미지의 주요 방향 찾기</title>
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="pca.css">
+  <script src="pca-core.js" defer></script><script src="pca.js" defer></script>
+</head>
+<body><main>
+  <nav class="lab-nav" aria-label="예제 이동"><a href="index.html">A · 윤곽 자료 만들기</a><a href="train.html">B · MLP 학습하기</a><span aria-current="page">C · PCA로 주요 방향 찾기</span></nav>
+  <header><span class="eyebrow">C / PRINCIPAL COMPONENT ANALYSIS</span><h1>몇 개의 숫자로,<br>얼굴을 남길 수 있을까?</h1><p>이미지들의 차이가 가장 크게 드러나는 방향을 찾습니다. 주요 방향을 조금씩 남기면서, 적은 숫자로 표현한 이미지가 원래 모습을 얼마나 담는지 확인해 보세요.</p></header>
+  <section class="formula"><strong>평균 빼기 → 고윳값·고유벡터 찾기 → 주요 방향으로 사영 → 차원 축소</strong><span>3주차 주요 방향 분석 · 행렬곱 M = XᵀX · Mv = λv · 사영 T = XU</span></section>
+  <section class="concept-card"><h2>C에서 확인할 개념</h2><p><b>고유벡터</b>는 데이터가 퍼진 방향을, 이 예제의 <b>고윳값</b>은 그 방향에 사영한 좌표의 제곱합을 나타냅니다. 큰 고윳값의 방향부터 남기면 적은 좌표로도 데이터의 큰 변화를 담을 수 있습니다.</p><p class="small">A는 행렬곱을 이용한 특징 계산, B는 합성함수의 미분을 이용한 가중치 학습, C는 고윳값·고유벡터와 사영을 이용한 방향 분석입니다. 상단 메뉴에서 각 설명과 예제를 확인할 수 있습니다.</p></section>
+
+  <div class="experiment-heading"><div><span class="eyebrow">EXPERIMENT 01</span><h2>이미지를 적은 좌표로 표현하기</h2></div><span class="pill">EigenFaces 방식 체험</span></div>
+  <section class="image-layout">
+    <article class="pca-card data-card"><div class="section-title"><h2>01 함께 분석할 이미지</h2><span id="sample-count"></span></div>
+      <div class="button-row"><button id="demo-faces">예제 얼굴 다시 불러오기</button><label class="button" for="face-upload">내 이미지 여러 장 선택</label><input id="face-upload" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" multiple hidden></div>
+      <p class="small">예제는 직접 만든 얼굴 그림 12장입니다. 내 사진은 얼굴·눈의 위치를 비슷하게 맞춘 2~24장을 선택하세요. 중앙을 정사각형으로 자르고 흑백 32×32로 맞춥니다. 자동 얼굴 정렬은 하지 않습니다.</p>
+      <div id="face-gallery" class="face-gallery" aria-label="분석 이미지 선택"></div>
+      <p class="status" id="face-status" role="status">예제 준비 중…</p>
+    </article>
+    <article class="pca-card"><h2>02 평균 얼굴과 주요 방향</h2><div class="basis-layout"><figure><canvas id="mean-face" width="32" height="32" aria-label="평균 이미지"></canvas><figcaption>평균 이미지 μ</figcaption></figure><div><p class="small">같은 위치의 픽셀끼리 평균을 냅니다. 각 이미지에서 평균을 빼고, 남은 차이의 주요 방향을 찾습니다.</p><p class="small" id="matrix-shape"></p></div></div><div class="eigen-gallery" id="eigen-gallery" aria-label="주요 방향 이미지"></div><p class="small">방향 그림은 고유벡터의 픽셀별 값을 회색을 중심으로 대비를 키워 표시합니다. 실제 얼굴이나 복원 이미지가 아닙니다. 밝고 어두운 곳은 함께 달라지는 픽셀을 보여 줍니다.</p></article>
+  </section>
+  <section class="pca-card reconstruction-card"><div class="section-title"><h2>03 주요 방향을 몇 개 남길까요?</h2><span id="rank-label"></span></div>
+    <div class="component-control"><label for="component-count">남길 주요 방향 <output id="component-readout">2개</output></label><input id="component-count" type="range" min="0" max="11" step="1" value="2"><div class="range-ends"><span>0개 · 평균만 남기기</span><span>계산된 방향 모두 남기기</span></div></div>
+    <div class="stats pca-stats"><div>이미지 한 장의 좌표 수<strong id="dimension-stat">1024 → 2</strong></div><div>자료 전체의 변동 보존율<strong id="retained-stat">—</strong></div><div>선택 이미지의 복원 오차<strong id="error-stat">—</strong></div></div>
+    <div class="reconstruction-grid"><figure><canvas id="original-face" width="32" height="32" aria-label="선택한 원본 이미지"></canvas><figcaption id="original-label">선택한 원본</figcaption></figure><figure><canvas id="reconstructed-face" width="32" height="32" aria-label="PCA 좌표로 복원한 이미지"></canvas><figcaption id="reconstructed-label">주요 방향으로 복원</figcaption></figure><figure><canvas id="difference-face" width="32" height="32" aria-label="원본과 복원 이미지의 절대 차이"></canvas><figcaption>절대 차이 · 밝을수록 큰 오차</figcaption></figure></div>
+    <p id="reconstruction-note" class="small" role="status"></p><pre id="selected-scores" aria-label="선택한 이미지의 사영 좌표"></pre>
+    <p class="small">보존율은 분석 자료 전체에서의 제곱합 비율이며, 얼굴 인식 정확도가 아닙니다. 오차는 0~255 밝기에서의 RMSE로, 화면 표시용 반올림·범위 제한 전 값입니다. 좌표 수 감소는 이미지 한 장의 표현을 뜻하며, 평균과 공통 방향을 저장하는 비용은 별도입니다.</p>
+    <div class="button-row"><label class="button" for="query-upload">분석에 쓰지 않은 이미지 적용</label><input id="query-upload" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" hidden><button id="save-reconstruction">복원 PNG 저장</button><button id="save-coordinates">자료의 사영 좌표 CSV 저장</button></div><p id="query-status" class="small" role="status">새 이미지는 기존 평균과 주요 방향에만 사영합니다. 분석 자료에 추가하지 않습니다.</p>
+  </section>
+  <section class="pca-card"><div class="section-title"><h2>04 큰 고윳값부터 남기는 이유</h2><span>현재 k를 초록색으로 표시</span></div><canvas id="spectrum-chart" width="960" height="190" aria-label="방향별 변동 비율 막대그래프"></canvas><p class="small" id="spectrum-note"></p></section>
+
+  <div class="experiment-heading"><div><span class="eyebrow">EXPERIMENT 02</span><h2>리포트의 네 점으로 계산 확인하기</h2></div><span class="pill">2차원 → 1차원</span></div>
+  <section class="point-layout"><article class="pca-card"><p>점 <b>(−2,−1), (−1,−2), (1,2), (2,1)</b>을 한 방향에 사영합니다. 네 점의 평균은 (0,0)입니다. 방향을 직접 돌려 보고, 사영한 좌표의 제곱합이 언제 가장 커지는지 확인하세요.</p><label for="projection-angle">사영 방향 <output id="angle-readout">45°</output></label><input id="projection-angle" type="range" min="0" max="180" step="1" value="45"><button id="best-direction" class="primary">첫 번째 주요 방향 45°로 맞추기</button><div class="point-legend"><span>● 원래 점</span><span>○ 사영한 점</span><span>— 사영 방향</span></div><canvas id="point-chart" width="620" height="430" aria-label="네 점과 한 방향으로 사영한 결과"></canvas></article>
+    <article class="pca-card"><h2>수식과 작은 예제</h2><pre class="math-block">X = [−2 −1; −1 −2; 1 2; 2 1]
+M = XᵀX = [10 8; 8 10]
+Mv = λv
+
+λ₁ = 18,  u₁ = (1, 1) / √2
+λ₂ =  2,  u₂ = (1,−1) / √2
+
+u₁ 방향으로 사영하면
+T = Xu₁ = (−3/√2, −3/√2, 3/√2, 3/√2)ᵀ</pre><div class="projection-result"><span>현재 방향의 사영 좌표 제곱합</span><strong id="projected-energy">18.000</strong><span id="energy-explanation"></span></div><div class="table-wrap"><table><thead><tr><th>원래 점</th><th>사영 좌표 t</th><th>평면에서의 사영점 tu</th></tr></thead><tbody id="point-values"></tbody></table></div><p class="small">사영 좌표는 숫자 1개입니다. 그래프의 사영점은 그 좌표를 원래 평면의 직선 위로 되돌려 그린 것입니다. 45°에서 첫 두 점이 같은 좌표가 되므로, 줄어든 차원에 담기지 않은 차이는 잃게 됩니다.</p></article></section>
+
+  <details><summary>수업·논문·이 실습은 어떻게 연결될까요?</summary><p>3주차의 고윳값·고유벡터로 주요 방향을 찾고, 사영하여 차원을 축소하는 과정을 실습합니다. X의 각 행은 평균을 뺀 관측값이며, M = XᵀX입니다. 단위벡터 u로 사영한 좌표의 제곱합은 ‖Xu‖² = uᵀMu입니다. u가 단위 고유벡터이면 이 값이 고윳값 λ가 됩니다. 표본분산으로 나타낼 때는 λ를 자료 수−1로 나눕니다. 이 페이지는 고윳값을 나누기 전 제곱합으로 표시합니다.</p><p>이미지에서는 1024×1024 행렬을 직접 분해하는 대신 더 작은 XXᵀ의 고유벡터 a로부터 u = Xᵀa / √λ를 구합니다. 0이 아닌 주요 방향은 XᵀX를 사용하는 방법과 같습니다. 이미지 N장의 평균을 뺀 자료는 최대 N−1개의 0이 아닌 방향을 가집니다. 수치 오차 때문에 매우 작은 방향은 제외합니다.</p><p>ViT 논문의 4.5절과 Figure 7 왼쪽에서는 학습한 패치 임베딩 필터를 PCA로 분석합니다. 여기서는 필터 대신 이미지들에 같은 방향 분석을 적용하여 EigenFaces 방식의 차원 축소를 체험합니다. ViT의 실제 필터를 분석한 결과나 얼굴 인식 성능 실험은 아닙니다.</p><p>주요 방향이 얼굴의 의미나 정체성을 자동으로 이해한다는 뜻은 아닙니다. 밝기·배경·위치 차이가 큰 방향으로 나타날 수도 있습니다. 새 이미지에서 확인한 복원 오차만으로 인물 일치 여부를 판단하지 않습니다.</p><p><a href="https://arxiv.org/html/2010.11929v2#S4.SS5" target="_blank" rel="noopener">ViT 논문 4.5절</a> · <a href="https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html" target="_blank" rel="noopener">PCA 공식 설명</a></p></details>
+  <footer>이미지와 계산 결과는 브라우저 안에서만 처리됩니다. 새로고침하면 선택한 자료가 사라집니다. · <a href="https://github.com/jeongsh214/rgb-neighbor-edge-demo">소스와 사용 설명</a></footer>
+</main></body></html>

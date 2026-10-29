@@ -11,9 +11,10 @@
 </head>
 <body>
 <main>
-  <nav class="lab-nav" aria-label="예제 이동"><span aria-current="page">A · 윤곽 자료 만들기</span><a href="train.html">B · MLP 학습하기 →</a></nav>
+  <nav class="lab-nav" aria-label="예제 이동"><span aria-current="page">A · 윤곽 자료 만들기</span><a href="train.html">B · MLP 학습하기</a><a href="pca.html">C · PCA로 주요 방향 찾기</a></nav>
   <header><span class="eyebrow">RGB NEIGHBOR EDGE LAB</span><h1>주변과 다른 색,<br>윤곽이 될 수 있을까?</h1><p>픽셀 하나와 주변 8개의 평균을 비교합니다. 높은 점수를 살펴보고, 실제 윤곽과 비윤곽을 직접 표시해 보세요.</p></header>
   <section class="formula" aria-label="계산 방법"><strong>s = (R − 주변 R 평균)² + (G − 주변 G 평균)² + (B − 주변 B 평균)²</strong><span>중심 제외 · 이미지 밖과 완전 투명 픽셀 제외 · 검정 픽셀 포함</span></section>
+  <details><summary>A · 행렬곱과 특징 표현 — 개념과 실습 순서</summary><p>패치 임베딩은 펼친 이미지 패치 p에 학습 가능한 가중치 행렬 E를 곱하여 특징 벡터 e = pE로 변환하는 과정입니다. 2주차의 행렬곱과 연결됩니다.</p><p>아래 실습에서는 중심과 주변 평균의 차이를 가중합으로 계산한 뒤, RGB 채널별 차이를 제곱하여 합합니다. 가중합 부분은 행렬곱으로 표현할 수 있고, 제곱은 별도의 비선형 연산입니다. ViT의 패치 임베딩 전체를 구현한 것은 아닙니다.</p><p><b>도형 예제 → 점수 확인 → 윤곽·비윤곽 직접 표시 → 학습 JSON 저장</b> 순서로 사용하세요. <a href="train.html">B에서는 이 자료로 MLP를 학습</a>하고, <a href="pca.html">C에서는 별도의 이미지 자료로 PCA 방향 분석</a>을 체험합니다.</p></details>
   <section class="toolbar" aria-label="이미지 선택">
     <label class="button primary" for="upload">내 이미지 선택</label><input id="upload" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" hidden>
     <button id="demo">도형 예제</button><button id="cancellation">평균 상쇄 예제</button>
